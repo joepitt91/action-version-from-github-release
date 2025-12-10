@@ -74,7 +74,7 @@ runs:
   - name: Print Version
     id: print
     run: |
-      echo "Latest version (${{ steps.get_version.outputs.version }}) of ${{ inputs.owner }}/${{ inputs.repository }} is in release ${{ steps.get_version.outputs.release }}"
+      echo "Latest version (${{ steps.get_version.outputs.version }}) of ${{ inputs.owner }}/${{ inputs.repository }} is in tag ${{ steps.get_version.outputs.release_tag }}"
     shell: bash
 branding:
   color: blue
