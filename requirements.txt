@@ -1,6 +1,13 @@
-#SPDX-FileCopyrightText: 2025 Joe Pitt
+# SPDX-FileCopyrightText: 2025 Joe Pitt
+#
+# SPDX-License-Identifier: GPL-3.0-only
 
-#SPDX-License-Identifier: GPL-3.0-only
 
-get-latest-version~=1.0.3
-semver~=3.0.4
+certifi==2025.11.12
+charset-normalizer==3.4.4
+defusedxml==0.7.1
+get_latest_version==2.0.0
+idna==3.11
+requests==2.32.5
+semver==3.0.4
+urllib3==2.6.1

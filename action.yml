@@ -16,59 +16,60 @@ inputs:
   repository:
     description: The name of the source repository.
     required: true
-  minimum_version:
-    description: The minimum version number to accept, e.g. 2.0.0. Defaults to None.
+  greater_equal_version:
+    description: The minimum version to accept, e.g. 2.0.0. Defaults to None.
     required: false
-  maximum_version:
-    description: The maximum version number to accept, e.g. 2.99.99. Defaults to None.
+  less_than_version:
+    description: The version to accept versions less than, e.g. 3.0.0. Defaults to None.
     required: false
 outputs:
-  release:
-    description: The release name for the latest version.
-    value: ${{ steps.get_version.outputs.release }}
+  release_tag:
+    description: The tag associated with the release for the latest version.
+    value: ${{ steps.get_version.outputs.release_tag }}
   version:
     description: The latest version number.
     value: ${{ steps.get_version.outputs.version }}
 runs:
   using: composite
   steps:
-  - name: Install Dependencies
-    id: dependencies
-    run: pip3 install --quiet --upgrade -r ${{ github.action_path }}/requirements.txt
-    shell: bash
   - name: Get Latest Version
     id: get_version
     env:
       GITHUB_ACTION_PATH: ${{ github.action_path }}
-      INPUT_maximum_version: ${{ inputs.minimum_version }}
-      INPUT_minimum_version: ${{ inputs.minimum_version }}
+      INPUT_greater_equal_version: ${{ inputs.greater_equal_version }}
+      INPUT_less_than_version: ${{ inputs.less_than_version }}
       INPUT_owner: ${{ inputs.owner }}
       INPUT_repository: ${{ inputs.repository }}
       INPUT_token: ${{ inputs.token }}
     shell: python
     run: |
       from os import getenv
+      from os.path import abspath, join
+      import sys
+
+      sys.path.insert(1, abspath(join(getenv("GITHUB_ACTION_PATH", "."), "lib")))
+
       from get_latest_version.github import get_latest_version_from_releases
       from get_latest_version.functions import clean_version
       from semver import Version
 
-      minimum_version = None
-      if getenv("INPUT_minimum_version") is not None and len(getenv("INPUT_minimum_version")) >= 5:
-          minimum_version = Version.parse(getenv("INPUT_minimum_version"))
-      maximum_version = None
-      if getenv("INPUT_maximum_version") is not None and len(getenv("INPUT_maximum_version")) >= 5:
-          maximum_version = Version.parse(getenv("INPUT_maximum_version"))
+      greater_equal_version = None
+      if getenv("INPUT_greater_equal_version") is not None and len(getenv("INPUT_greater_equal_version")) >= 5:
+          greater_equal_version = Version.parse(getenv("INPUT_greater_equal_version"))
+      less_than_version = None
+      if getenv("INPUT_less_than_version") is not None and len(getenv("INPUT_less_than_version")) >= 5:
+          less_than_version = Version.parse(getenv("INPUT_less_than_version"))
 
       release = get_latest_version_from_releases(
           token=getenv("INPUT_token"),
           owner=getenv("INPUT_owner"),
           repository=getenv("INPUT_repository"),
-          minimum_version=minimum_version,
-          maximum_version=maximum_version,
+          greater_equal_version=greater_equal_version,
+          less_than_version=less_than_version,
       )
 
       with open(getenv("GITHUB_OUTPUT"), "a", encoding="utf-8") as f:
-          f.write(f"release={release}\n")
+          f.write(f"release_tag={release}\n")
           f.write(f"version={Version.parse(clean_version(release))}\n")
   - name: Print Version
     id: print
