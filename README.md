@@ -14,14 +14,14 @@ Get the latest version from the releases in a GitHub repository.
 | token | The token to authenticate to GitHub with. | Yes |  |
 | owner | The owner of the source repository. | yes |  |
 | repository | The name of the source repository. | Yes |  |
-| minimum_version | The minimum version number to accept, e.g. 2.0.0. | No | None |
-| maximum_version | The maximum version number to accept, e.g. 2.99.99. | No | None |
+| greater_equal_version | The minimum version to accept, e.g. 2.0.0. | No | None |
+| less_than_version | The version to accept versions less than, e.g. 3.0.0. | No | None |
 
 ## Outputs
 
 | Output | Description | Example |
 |--------|-------------|---------|
-| release | The release name for the latest version. | v2.5.3 |
+| release_tag | The tag associated with the release for the latest version. | v2.5.3 |
 | version | The latest version number. | 2.5.3 |
 
 ## Example
@@ -29,7 +29,7 @@ Get the latest version from the releases in a GitHub repository.
 ```yaml
       - name: Get Latest ComfyUI Version
         id: version
-        uses: joepitt91/action-version-from-github-release@v1
+        uses: joepitt91/action-version-from-github-release@v2
         with:
           token: ${{ secrets.PACKAGE_READER_PAT }}
           owner: comfyanonymous
