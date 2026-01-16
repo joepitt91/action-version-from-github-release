@@ -1,0 +1,30 @@
+---
+# SPDX-FileCopyrightText: 2026 Joe Pitt
+#
+# SPDX-License-Identifier: GPL-3.0-only
+
+name: Update PIP Dependencies
+permissions:
+  contents: write
+on:
+  push:
+    branches-ignore: 
+      - main
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v6
+
+      - name: Update Dependencies
+        run: pip install --no-cache-dir --target=./lib/ --upgrade -r requirements.txt
+
+      - name: Commit Updates
+        uses: ryancyq/github-signed-commit@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            lib/**
+          commit-message: "chore(deps): updated pip modules"
