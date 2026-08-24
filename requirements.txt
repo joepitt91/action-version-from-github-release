@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-certifi==2026.2.25
-charset-normalizer==3.4.5
+certifi==2026.7.22
+charset-normalizer==3.5.1
 defusedxml==0.7.1
-get_latest_version==2.0.0
-idna==3.11
-requests==2.32.5
+get_latest_version==2.0.1
+idna==3.19
+requests==2.34.2
 semver==3.0.4
 urllib3==2.7.0
