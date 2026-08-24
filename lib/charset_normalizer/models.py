@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from encodings.aliases import aliases
-from json import dumps
 from re import sub
 from typing import Any, Iterator, List, Tuple
 
@@ -12,7 +11,7 @@ from .utils import iana_name, is_multi_byte_encoding, unicode_range
 class CharsetMatch:
     def __init__(
         self,
-        payload: bytes,
+        payload: bytes | bytearray,
         guessed_encoding: str,
         mean_mess_ratio: float,
         has_sig_or_bom: bool,
@@ -20,7 +19,7 @@ class CharsetMatch:
         decoded_payload: str | None = None,
         preemptive_declaration: str | None = None,
     ):
-        self._payload: bytes = payload
+        self._payload: bytes | bytearray = payload
 
         self._encoding: str = guessed_encoding
         self._mean_mess_ratio: float = mean_mess_ratio
@@ -41,7 +40,11 @@ class CharsetMatch:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, CharsetMatch):
             if isinstance(other, str):
-                return iana_name(other) == self.encoding
+                # Use non-strict iana_name so an operand that is not a known
+                # encoding alias compares unequal instead of raising, keeping
+                # __eq__ total as the data model requires (mirrors the lookup
+                # in CharsetMatches.__getitem__).
+                return iana_name(other, False) == self.encoding
             return False
         return self.encoding == other.encoding and self.fingerprint == other.fingerprint
 
@@ -55,10 +58,10 @@ class CharsetMatch:
         chaos_difference: float = abs(self.chaos - other.chaos)
         coherence_difference: float = abs(self.coherence - other.coherence)
 
-        # Below 1% difference --> Use Coherence
-        if chaos_difference < 0.01 and coherence_difference > 0.02:
+        # Below 0.5% difference --> Use Coherence
+        if chaos_difference < 0.005 and coherence_difference > 0.02:
             return self.coherence > other.coherence
-        elif chaos_difference < 0.01 and coherence_difference <= 0.02:
+        elif chaos_difference < 0.005 and coherence_difference <= 0.02:
             # When having a difficult decision, use the result that decoded as many multi-byte as possible.
             # preserve RAM usage!
             if len(self._payload) >= TOO_BIG_SEQUENCE:
@@ -69,12 +72,26 @@ class CharsetMatch:
 
     @property
     def multi_byte_usage(self) -> float:
-        return 1.0 - (len(str(self)) / len(self.raw))
+        # Empty payloads are valid (from_bytes(b"") returns a match); avoid /0.
+        raw_len = len(self.raw)
+        if raw_len == 0:
+            return 0.0
+        return 1.0 - (len(str(self)) / raw_len)
 
     def __str__(self) -> str:
         # Lazy Str Loading
         if self._string is None:
             self._string = str(self._payload, self._encoding, "strict")
+            # UTF-7 BOM is encoded in modified Base64 whose byte boundary
+            # can overlap with the next character, so raw-byte stripping
+            # is unreliable. Strip the decoded BOM character instead.
+            if (
+                self._has_sig_or_bom
+                and self._encoding == "utf_7"
+                and self._string
+                and self._string[0] == "\ufeff"
+            ):
+                self._string = self._string[1:]
         return self._string
 
     def __repr__(self) -> str:
@@ -171,7 +188,7 @@ class CharsetMatch:
         return round(self.coherence * 100, ndigits=3)
 
     @property
-    def raw(self) -> bytes:
+    def raw(self) -> bytes | bytearray:
         """
         Original untouched bytes.
         """
@@ -249,8 +266,15 @@ class CharsetMatches:
 
     def __init__(self, results: list[CharsetMatch] | None = None):
         self._results: list[CharsetMatch] = sorted(results) if results else []
+        self._is_sorted: bool = True
+
+    def _ensure_sorted(self) -> None:
+        if not self._is_sorted:
+            self._results.sort()
+            self._is_sorted = True
 
     def __iter__(self) -> Iterator[CharsetMatch]:
+        self._ensure_sorted()
         yield from self._results
 
     def __getitem__(self, item: int | str) -> CharsetMatch:
@@ -259,6 +283,7 @@ class CharsetMatches:
         Raise KeyError upon invalid index or encoding not present in results.
         """
         if isinstance(item, int):
+            self._ensure_sorted()
             return self._results[item]
         if isinstance(item, str):
             item = iana_name(item, False)
@@ -291,7 +316,7 @@ class CharsetMatches:
                     match.add_submatch(item)
                     return
         self._results.append(item)
-        self._results = sorted(self._results)
+        self._is_sorted = False
 
     def best(self) -> CharsetMatch | None:
         """
@@ -299,6 +324,7 @@ class CharsetMatches:
         """
         if not self._results:
             return None
+        self._ensure_sorted()
         return self._results[0]
 
     def first(self) -> CharsetMatch | None:
@@ -356,4 +382,6 @@ class CliDetectionResult:
         }
 
     def to_json(self) -> str:
+        from json import dumps
+
         return dumps(self.__dict__, ensure_ascii=True, indent=4)
