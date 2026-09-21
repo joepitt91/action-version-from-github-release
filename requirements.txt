@@ -10,4 +10,4 @@ get_latest_version==2.0.1
 idna==3.19
 requests==2.34.2
 semver==3.0.4
-urllib3==2.7.0
+urllib3==2.8.0
