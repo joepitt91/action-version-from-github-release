@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-certifi==2026.7.22
+certifi==2026.10.19
 charset-normalizer==3.5.1
 defusedxml==0.7.1
 get_latest_version==2.0.1
